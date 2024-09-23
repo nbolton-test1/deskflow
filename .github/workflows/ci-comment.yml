@@ -5,8 +5,11 @@
 #
 # This workflow is neccesary because PRs opened by external forks do not have write access to
 # their PR, so the PR-triggered workflow can't add comments to the PR.
-# If this was in the CI workflow, it'd be tidier and easier to debug but unfortunately that
-# isn't possible due to the lower security context that the CI workflow runs in.
+#
+# If this was in the CI workflow, it'd be tidier and easier to debug but unfortunately that isn't
+# possible due to the lower security context that the CI workflow runs in (when triggered by an
+# external forks PR).
+
 name: CI comment
 
 on:

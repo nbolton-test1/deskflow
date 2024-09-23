@@ -1,0 +1,45 @@
+# Runs basic SonarCloud analysis in an escalated security context, triggered when CI starts.
+#
+# This is neccesary because PRs from external forks do not have access to secrets (i.e. the
+# SonarCloud auth token).
+#
+# TODO: To keep it simple, we don't yet pull the coverage reports in, but this could be done
+# by using upload/download artifacts.
+#
+# If this was in the CI workflow, it'd be tidier and easier to debug but unfortunately that isn't
+# possible due to the lower security context that the CI workflow runs in (when triggered by an
+# external forks PR).
+
+name: SonarCloud Analysis (basic)
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - requested
+
+jobs:
+  sonarcloud-simple:
+    runs-on: ubuntu-latest
+
+    # Only run for external forks (where repo full name differs).
+    if: github.event.workflow_run.head_repository.full_name != github.repository
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.workflow_run.head_repository.full_name }}
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarcloud-github-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.scm.revision=${{ github.event.workflow_run.head_sha }}
+            -Dsonar.pullrequest.key=${{ github.event.workflow_run.pull_requests[0].number }}
+            -Dsonar.pullrequest.branch=${{ github.event.workflow_run.pull_requests[0].head.ref }}
+            -Dsonar.pullrequest.base=${{ github.event.workflow_run.pull_requests[0].base.ref }}
